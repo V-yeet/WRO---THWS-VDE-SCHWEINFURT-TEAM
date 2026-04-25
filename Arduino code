@@ -1,0 +1,99 @@
+#include <Pixy2.h>
+#include <Wire.h>
+#include <MPU6050.h>
+
+#define MPU_ADDR 0x68
+
+Pixy2 pixy;
+MPU6050 mpu(MPU_ADDR); // Initialises mpu at the stated address
+uint8_t data[18];// declaring variable to transmit data on UART
+float yaw = 0;// Yaw reading variable
+unsigned long lastTime = 0;
+float axOffset = 0;
+float gzOffset = 0;
+float speed = 0;
+
+//calibratesMpu and builds an offest so the values dont go on adding themselves
+void calibrateMPU() {
+  long sumGz = 0;
+  long sumAx = 0;
+  int16_t ax, ay, az;
+  int16_t gx, gy, gz;
+  const int samples = 500;
+  for (int i = 0; i < samples; i++) {
+    mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+    sumGz += gz;
+    sumAx += ax;
+    delay(2);
+  }
+
+  gzOffset = sumGz / (float)samples;
+  axOffset = sumAx / (float)samples;
+}
+//Reads and calculates values from mpu6050(Includes mathematical logic for not letting the yaw values addon itself)
+void updateMPU() {
+  int16_t ax, ay, az;
+  int16_t gx, gy, gz;
+
+  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+  unsigned long currentTime = millis();
+  float dt = (currentTime - lastTime) / 1000.0;
+
+  float acc = ((ax - axOffset) / 16384.0) * 9.81;
+
+  if (fabs(acc) < 0.15) {
+    acc = 0;
+  }
+
+  speed += acc * dt;
+
+  if (fabs(speed) < 0.05) {
+    speed = 0;
+  }
+
+  lastTime = currentTime;
+
+  float gzCorrected = gz - gzOffset;
+
+  if (fabs(gzCorrected) < 3.0) {
+    gzCorrected = 0;
+  }
+
+  yaw += (gzCorrected / 131.0) * dt;
+}
+//sets up and initializes pixycam
+void setup() {
+  Serial.begin(115200);
+  pixy.init();
+  Wire.begin();
+  Wire.setClock(100000);
+  mpu.initialize();
+  delay(1000);
+  calibrateMPU();
+  lastTime = millis();
+}
+//main loop(sends data to esp32 on UART connection)
+void loop() {
+  pixy.ccc.getBlocks(); 
+  updateMPU();
+
+  memset(data, 0, 18);
+
+  int blocks = pixy.ccc.numBlocks;
+  if (blocks > 3) blocks = 3;
+
+  for (int i = 0; i < blocks; i++) {
+    data[i * 3 + 0] = (uint8_t)pixy.ccc.blocks[i].m_x;
+    data[i * 3 + 1] = (uint8_t)pixy.ccc.blocks[i].m_y;
+    data[i * 3 + 2] = (uint8_t)pixy.ccc.blocks[i].m_signature;
+  }
+
+  data[9] = 1.0;
+  memcpy(&data[10], &yaw, 4);
+  memcpy(&data[14], &speed, 4);
+  Serial.write(0xAA);
+  Serial.write(0xBB);
+  Serial.write(data, 18);
+
+  delay(50);
+}
