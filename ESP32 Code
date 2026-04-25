@@ -17,8 +17,8 @@
 HardwareSerial mySerial(2);
 float Yaw; // Angle of the robot(Information comming form Arduino Nano on UART transmission).
 float trigger = 0.0; //Trigger from Nano that all values are coming and the robot is good to go.
-float Kp = 3.0;
-float Kd = 3.0;
+float Kp = 5.0;
+float Kd = 5.0;
 int followpath = 0; //Global variable for the robot to get the trigger to go after a blok detection.
 bool reddet = false; //Red Block detection boolean.
 bool greendet = false; //Green Block detection boolean.
@@ -245,9 +245,9 @@ void loop() {
     stopdistance = distF;
   } else {
     if (abs(Yawsee) <= 1040.0) {  //2. FINSIHING SECTION
-      if (distF <= 7.5 || distRR <= 3.0 || distLL <= 3.0) {   //3. FRONT HITTING SECTION
+      if (distF <= 7.5 ) {   //3. FRONT HITTING SECTION
         frontdetect = true;
-      } else if (distF > 15.0 && distRR > 6.0 && distLL > 6.0) {
+      } else if (distF > 15.0 ) {
         frontdetect = false;
       }
 
@@ -266,9 +266,9 @@ void loop() {
         }
 
         if (Brainlatch == 0) {     //5. DIRECTION SECTION
-          if (distRR > distLL) {
+          if (distRR > distLL && Brainlatch != 2) {
             Brainlatch = 1;
-          } else if (distLL > distRR) {
+          } else if (distLL > distRR && Brainlatch != 1) {
             Brainlatch = 2;
           }
         }
@@ -319,6 +319,9 @@ void loop() {
             followpath = 2;
             
           }
+          else{
+            followpath = 0;
+          }
           if(followpath == 1){
             if (Brainlatch == 1) {
               error = distRR - 25.0;
@@ -359,7 +362,7 @@ void loop() {
           int steeringangle = Mid;
           if (Brainlatch == 1) {
             steeringangle = Mid + correction;
-            if(abs(headingError) >= 30.0){
+            /*if(abs(headingError) >= 30.0){
             steeringangle = headingCorrection * 0.2 + steeringangle * 0.8;
           }
            else if (abs(headingError) >= 45.0) {
@@ -376,7 +379,7 @@ void loop() {
             steeringangle = headingCorrection * 0.7 + steeringangle * 0.3;
           } else if (abs(headingError) >= 60.0) {
             steeringangle = headingCorrection * 1.5; 
-          }
+          }*/
           } 
           steeringangle = constrain(steeringangle, Min, Max);
           steering.write(steeringangle);
@@ -392,13 +395,13 @@ void loop() {
         if (turnState == 1) {    //12. TURNING STATES SECTION
           steering.write(Max);
           driveForward(SPD);
-          if ( distRR <= 80.0) {
+          if (abs(Yaw - yawstart) >= 80.0) {
             turnState = 0;
             }
         } else if (turnState == 2) {
           steering.write(Min);
           driveForward(SPD);
-          if ( distLL <= 80.0) {
+          if (abs(Yaw - yawstart) >= 80.0) {
             turnState = 0;
           }
         }
