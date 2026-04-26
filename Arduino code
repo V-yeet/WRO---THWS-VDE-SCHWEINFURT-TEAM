@@ -1,3 +1,11 @@
+/*Der Arduino Nano Mikrocontroller wird verwendet, um Daten vom Pixy-Kameramodul zu empfangen. 
+Diese Daten enthalten Informationen über Hindernisse wie Farbe, Größe und Position. Das Programm nutzt diese Daten, 
+um den Winkel zu berechnen, um den sich der Roboter drehen soll (Yaw-Winkel), 
+und sendet diese Informationen anschließend über UART an den ESP32. Die Winkeldaten werden dann vom ESP32 verwendet,
+um die Lenkung des Fahrzeugs auszuführen.
+*/
+
+
 #include <Pixy2.h>
 #include <Wire.h>
 #include <MPU6050.h>
