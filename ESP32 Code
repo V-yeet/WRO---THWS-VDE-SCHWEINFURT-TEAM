@@ -1,3 +1,13 @@
+/*Unser Programm steuert einen autonomen Roboter auf Basis eines ESP32, 
+der Ultraschallsensoren und eine Pixy-Kamera verwendet, 
+um einer Strecke zu folgen und farbige Blöcke zu erkennen. 
+Der Roboter kommuniziert mit einem Arduino Nano, um den Yaw-Winkel und Kameradaten zu erhalten, 
+wodurch er seine Richtung halten und die Runden zählen kann. 
+Ein PD-Regler passt die Lenkung mithilfe der Wandabstände und der Richtungsabweichung an, 
+um eine stabile Fahrt zu gewährleisten. Der Roboter vermeidet Hindernisse, 
+folgt farbigen Blöcken oder umfährt sie, erkennt Kurven automatisch und stoppt nach etwa drei gefahrenen Runde*/
+
+
 #include <ESP32Servo.h>
 #include <Wire.h>
 #include <math.h>
